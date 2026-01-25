@@ -3,46 +3,43 @@
 #include <ncurses.h>
 #include <time.h>
 #include <stdbool.h>
+#include <string.h>
 
-#define START_SNOWFLAKE_SIZE 32
+#include "snow.h"
 
-struct _screenData_t {
+int main(int argc, char** argv) {
 
-    int rows;
-    int cols;
+    int maxSnowflakes = DEFAULT_MAX_SNOWFLAKES;
 
-} screenData;
+    if(argc == 2){
+        if(strncmp("--version", argv[1], 10) == 0){
+            printf("snow version 1.1\n");
+            return 0;
+        }
 
-struct snowflake_t {
+        if(strncmp("--help", argv[1], 7) == 0){
+            printf("snow [option]\n");
+            printf("\nOptions:\n");
+            printf("  --help     Prints this message\n");
+            printf("  --version  Prints the version number\n");
+            printf("  --heavy    Creates a heavy snowfall\n");
+            printf("  --light    Creates a light snowfall\n");
+            return 0;
+        }
 
-    int x;
-    int y;
-    char graphic;
-    bool finished;
+        if(strncmp("--heavy", argv[1], 8) == 0){
+            maxSnowflakes = 128;
+            SNOW_MODE = HEAVY;
+        }
 
-};
+        if(strncmp("--light", argv[1], 8) == 0){
+            maxSnowflakes = 32;
+            SNOW_MODE = LIGHT;
+        }
 
-const char graphics[] = {'*', '#', '+', 'o', '.'};
-const int graphicsSize = 5;
+    }
 
-struct _snowData_t {
-
-    int maxSnowflakes;
-    struct snowflake_t* arr;
-
-} snowData;
-
-void snow();
-void init();
-void deInit();
-void createSnow(int numFlakes);
-void updateSnow();
-void safeExitOnNull(void *ptr);
-int intClamp(int val, int floor, int ceil);
-
-int main(void) {
-
-    init();
+    init(maxSnowflakes);
 
     do {
         snow();
@@ -54,7 +51,7 @@ int main(void) {
 
 }
 
-void init(){
+void init(int maxSnowflakes){
 
     srand(time(NULL));
 
@@ -66,15 +63,13 @@ void init(){
     screenData.rows = getmaxy(stdscr) - 1;
     screenData.cols = getmaxx(stdscr) - 1;
 
-    snowData.maxSnowflakes = START_SNOWFLAKE_SIZE;
+    snowData.maxSnowflakes = maxSnowflakes;
     snowData.arr = malloc(sizeof(struct snowflake_t) * snowData.maxSnowflakes);
     safeExitOnNull(snowData.arr);
 
     for(int i = 0; i < snowData.maxSnowflakes; i++){
         snowData.arr[i].finished = true;
     }
-
-    createSnow(5);
 
 }
 
@@ -96,17 +91,27 @@ void snow(){
     updateSnow();
 
     // random chance to create a new snowflake
-    if((rand() % 2) == 0){
-        createSnow(1);
+    switch(SNOW_MODE){
+        case LIGHT:
+            if((rand() % 4) == 0){
+                createSnow(1);
+            }
+            break;
+        case HEAVY:
+            createSnow(4);
+            break;
+        case DEFAULT:
+            if((rand() % 2) == 0){
+                createSnow(1);
+            }
+            break;
     }
 
     // draw snow
     for(int i = 0; i < snowData.maxSnowflakes; i++){
-
         if(snowData.arr[i].finished == false){
             mvaddch(snowData.arr[i].y, snowData.arr[i].x, snowData.arr[i].graphic);
         }
-
     }
 
     // draw frame
