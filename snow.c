@@ -85,7 +85,7 @@ void deInit(){
 
 void snow(){
 
-    clear();
+    erase();
 
     // update snow falling
     updateSnow();
